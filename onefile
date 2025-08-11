@@ -4,140 +4,144 @@ import sys
 
 # Default ignore list for common directories/files
 DEFAULT_IGNORES = [
-  '.git', '.svn', '.hg', '__pycache__', '.venv', 'env', '.env', '.idea', '.vscocde', 'bin', 'obj'
+    '.git', '.svn', '.hg', '__pycache__', '.venv', 'env', '.env', '.idea', '.vscode', 'bin', 'obj'
 ]
 
 # Project-type specific ignores
 TYPE_IGNORES = {
-  'javascript': ['node_modules', 'dist', 'build', '.next', '.nuxt'],
-  'ruby': ['vendor', 'tmp', 'log', '.bundle'],
-  'php': ['vendor'],
-  'python': ['venv', 'env', '__pycache__', '.pytest_cache'],
-  # Add more types as needed
+    'javascript': ['node_modules', 'dist', 'build', '.next', '.nuxt', 'coverage', 'public/build'],
+    'ruby': ['vendor', 'tmp', 'log', '.bundle'],
+    'php': ['vendor'],
+    'python': ['venv', 'env', '__pycache__', '.pytest_cache'],
 }
 
 # Language map for code highlighting based on file extension
 LANG_MAP = {
-  '.js': 'javascript',
-  '.jsx': 'javascript',
-  '.ts': 'typescript',
-  '.tsx': 'typescript',
-  '.rb': 'ruby',
-  '.php': 'php',
-  '.py': 'python',
-  '.md': 'markdown',
-  '.txt': 'text',
-  '.html': 'html',
-  '.htm': 'html',
-  '.css': 'css',
-  '.json': 'json',
-  '.yml': 'yaml',
-  '.yaml': 'yaml',
-  '.java': 'java',
-  '.c': 'c',
-  '.cpp': 'cpp',
-  '.sh': 'bash'
-  # Add more extensions as needed
+    '.js': 'javascript',
+    '.jsx': 'javascript',
+    '.ts': 'typescript',
+    '.tsx': 'typescript',
+    '.rb': 'ruby',
+    '.php': 'php',
+    '.py': 'python',
+    '.md': 'markdown',
+    '.txt': 'text',
+    '.html': 'html',
+    '.htm': 'html',
+    '.css': 'css',
+    '.scss': 'scss',
+    '.json': 'json',
+    '.yml': 'yaml',
+    '.yaml': 'yaml',
+    '.java': 'java',
+    '.c': 'c',
+    '.cpp': 'cpp',
+    '.sh': 'bash',
+    '.prisma': 'prisma'
 }
 
 def detect_project_type(project_dir):
-  try:
-    files = os.listdir(project_dir)
-    if 'package.json' in files:
-      return 'javascript'
-    if 'Gemfile' in files:
-      return 'ruby'
-    if 'composer.json' in files:
-      return 'php'
-    if 'requirements.txt' in files or 'setup.py' in files:
-      return 'python'
-    # Add more detection logic for other types
-    return 'unknown'
-  except Exception:
-    return 'unknown'
+    try:
+        files = os.listdir(project_dir)
+        if 'package.json' in files:
+            return 'javascript'
+        if 'Gemfile' in files:
+            return 'ruby'
+        if 'composer.json' in files:
+            return 'php'
+        if 'requirements.txt' in files or 'setup.py' in files:
+            return 'python'
+        return 'unknown'
+    except Exception:
+        return 'unknown'
 
 def get_ignores(project_type):
-  ignores = set(DEFAULT_IGNORES)
-  if project_type in TYPE_IGNORES:
-    ignores.update(TYPE_IGNORES[project_type])
-  return ignores
+    ignores = set(DEFAULT_IGNORES)
+    if project_type in TYPE_IGNORES:
+        ignores.update(TYPE_IGNORES[project_type])
+    return ignores
 
 def get_lang(ext):
-  return LANG_MAP.get(ext.lower(), '')
+    return LANG_MAP.get(ext.lower(), '')
 
 def process_dir(current_path, rel_path, output, ignores):
-  entries = os.listdir(current_path)
-  files = []
-  subdirs = []
-
-  for entry in entries:
-    full_entry = os.path.join(current_path, entry)
-    if os.path.isdir(full_entry)
-      if entry in ignores or entry.startswith('.'):
-        continue
-      else:
-        if entry.startswith('.'):
-          continue # Skip hidden files
-        files.append(entry)
-
-  # Sort files and subdirs alphabetically
-  files.sort()
-  subdirs.sort()
-
-  # If not root, write the directory heading
-  if rel_path:
-    output.write(f'## {rel_path}\n\n')
-  
-  # Process files in this directory
-  for file in files:
-    file_path = os.path.join(current_path, file)
-    rel_file = os.path.join(rel_path, file) if rel_path else file
-    output.write(f'## {rel_file}\n\n')
     try:
-      with open(file_path, 'r', encoding='utf-8') as f:
-        content = f.read()
-      ext = os.path.splitext(file)[1]
-      lang = get_lang(ext)
-      output.write(f'```{lang}\n')
-      output.write(content)
-      output.write('\n```\n\n')
-    except UnicodeDecodeError:
-      output.write('_Binary or non-UTF8 file, content skipped._\n\n')
+        entries = os.listdir(current_path)
     except Exception as e:
-      output.write(f'_Error reading file: {e}_\n\n')
-  
-  # Recursively process subdirectories
-  for sub in subdirs:
-      sub_path = os.path.join(current_path, sub)
-      sub_rel = os.path.join(rel_path, sub) if rel_path else sub
-      process_dir(sub_path, sub_rel, output, ignores)
+        output.write(f"_Error accessing directory {rel_path}: {e}_\n\n")
+        return
+
+    files = []
+    subdirs = []
+
+    # Separate files and directories
+    for entry in entries:
+        full_entry = os.path.join(current_path, entry)
+        if entry in ignores or entry.startswith('.'):
+            continue
+        if os.path.isdir(full_entry):
+            subdirs.append(entry)
+        elif os.path.isfile(full_entry):
+            files.append(entry)
+
+    # Sort files and subdirs alphabetically
+    files.sort()
+    subdirs.sort()
+
+    # If not root, write the directory heading
+    if rel_path:
+        output.write(f'## {rel_path}\n\n')
+
+    # Process files in this directory
+    for file in files:
+        file_path = os.path.join(current_path, file)
+        rel_file = os.path.join(rel_path, file) if rel_path else file
+        output.write(f'### {rel_file}\n\n')
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            ext = os.path.splitext(file)[1]
+            lang = get_lang(ext)
+            output.write(f'```{lang}\n')
+            output.write(content)
+            output.write('\n```\n\n')
+        except UnicodeDecodeError:
+            output.write('_Binary or non-UTF8 file, content skipped._\n\n')
+        except Exception as e:
+            output.write(f'_Error reading file: {e}_\n\n')
+
+    # Recursively process subdirectories
+    for sub in subdirs:
+        sub_path = os.path.join(current_path, sub)
+        sub_rel = os.path.join(rel_path, sub) if rel_path else sub
+        process_dir(sub_path, sub_rel, output, ignores)
 
 def main():
-  if len(sys.argv) != 3:
-    print("Usage: onefile <project_dir> <output_dir>")
-    sys.exit(1)
+    if len(sys.argv) != 3:
+        print("Usage: onefile <project_dir> <output_dir>")
+        sys.exit(1)
 
-  project_dir = os.path.abspath(sys.argv[1])
-  output_dir = os.path.abspath(sys.argv[2])
-  project_name = os.path.basename(project_dir)
-  output_file = os.path.join(output_dir, f"{project_name}-onefile-full.md")
+    project_dir = os.path.abspath(sys.argv[1])
+    output_dir = os.path.abspath(sys.argv[2])
+    project_name = os.path.basename(project_dir)
+    output_file = os.path.join(output_dir, f"{project_name}-onefile-full.md")
 
-  if not os.path.isdir(project_dir):
-    print(f"Error: {project_dir} is not a directory.")
-    sys.exit(1)
-  
-  os.makedirs(output_dir, excist_ok=True)
+    if not os.path.isdir(project_dir):
+        print(f"Error: {project_dir} is not a directory.")
+        sys.exit(1)
 
-  project_type = detect_project_type(project_dir)
-  ignores = get_ignores(project_type)
+    os.makedirs(output_dir, exist_ok=True)
 
-  with open(output_file, 'w', encoding='utf-8') as out:
-    out.write(f'# {project_name}\n\n')
-    process_dir(project_dir, '', out, ignores)
-  
-  print(f"Generated: {output_file}")
-  print(f"Detected project type: {project_type}")
-  print(f"Ignored directories: {', '.join(sorted(ignores))}")
+    project_type = detect_project_type(project_dir)
+    ignores = get_ignores(project_type)
+
+    with open(output_file, 'w', encoding='utf-8') as out:
+        out.write(f'# {project_name}\n\n')
+        process_dir(project_dir, '', out, ignores)
+
+    print(f"Generated: {output_file}")
+    print(f"Detected project type: {project_type}")
+    print(f"Ignored directories: {', '.join(sorted(ignores))}")
 
 if __name__ == "__main__":
-  main()
+    main()
